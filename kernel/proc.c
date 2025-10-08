@@ -692,9 +692,11 @@ int sysinfo(int param){
         count++;
       }
     }
+    return count;
   }
   else if (param == 1){
-      counter();
+      return counter;
   }
+  return 0;
 }
 

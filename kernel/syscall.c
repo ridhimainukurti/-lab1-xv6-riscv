@@ -8,7 +8,7 @@
 #include "defs.h"
 
 // Fetch the uint64 at addr from the current process.
-extern int counter = 0;
+int counter = 0; 
 int
 fetchaddr(uint64 addr, uint64 *ip)
 {
@@ -130,6 +130,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_close]   sys_close,
 [SYS_info]    sys_info,
 };
+
 
 void
 syscall(void)

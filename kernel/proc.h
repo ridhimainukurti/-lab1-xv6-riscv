@@ -1,4 +1,5 @@
 // Saved registers for kernel context switches.
+
 struct context {
   uint64 ra;
   uint64 sp;
@@ -27,7 +28,7 @@ struct cpu {
 };
 
 extern struct cpu cpus[NCPU];
-
+extern int counter;
 // per-process data for the trap handling code in trampoline.S.
 // sits in a page by itself just under the trampoline page in the
 // user page table. not specially mapped in the kernel page table.
