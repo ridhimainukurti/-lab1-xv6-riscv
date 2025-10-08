@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "kalloc.h"
 
 struct cpu cpus[NCPU];
 
@@ -697,6 +698,9 @@ int sysinfo(int param){
   else if (param == 1){
       return counter;
   }
-  return 0;
+  else if (param == 2){
+    return freepagesCount();
+  }
+  return -1;
 }
 
