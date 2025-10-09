@@ -704,3 +704,23 @@ int sysinfo(int param){
   return -1;
 }
 
+int procinfo(struct pinfo *in){
+  int useraddr;
+  int count; 
+
+  if (argaddr(0, &useraddr) < 0 || useraddr == 0)
+    return -1;
+
+  struct proc *p = myproc(); 
+  struct pinfo k; 
+
+  if (p->parent != 0)
+    k.ppid = p->parent->pid;
+  else 
+    k.ppid = 0;
+
+
+
+}
+
+
