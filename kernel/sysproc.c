@@ -5,6 +5,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "pinfo.h"
 
 uint64
 sys_exit(void)
@@ -97,4 +98,23 @@ sys_info(int)
   sysinfo(param);
   return 0;
 }
+
+uint64
+sys_procinfo(void)
+{
+  uint64 uaddr; // user pointer 
+
+  argaddr(0, &uaddr);  //validate pointer argument 
+  if (uaddr == 0)
+    return -1; 
+
+  struct pinfo k; 
+  procinfo(&k);
+  //fail to copy user space 
+  if (copyout(myproc()->pagetable, uaddr, (char *)&k, sizeof(k)) < 0)
+    return -1; 
+
+  return 0; 
+}
+
 

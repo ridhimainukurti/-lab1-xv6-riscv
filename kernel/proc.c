@@ -6,6 +6,7 @@
 #include "proc.h"
 #include "defs.h"
 #include "kalloc.h"
+#include "pinfo.h"
 
 struct cpu cpus[NCPU];
 
@@ -125,6 +126,8 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+  p->syscalls_made = 0; //PART2: initializing it here 
+
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -683,7 +686,8 @@ procdump(void)
   }
 }
 
-int sysinfo(int param){
+int 
+sysinfo(int param){
   int count = 0;
   struct proc *p;
 
@@ -704,23 +708,25 @@ int sysinfo(int param){
   return -1;
 }
 
-int procinfo(struct pinfo *in){
-  int useraddr;
-  int count; 
+int 
+procinfo(struct pinfo *k){
+  struct proc *p = myproc(); //gets the current process 
 
-  if (argaddr(0, &useraddr) < 0 || useraddr == 0)
-    return -1;
-
-  struct proc *p = myproc(); 
-  struct pinfo k; 
-
+  //gets the parent id 
   if (p->parent != 0)
-    k.ppid = p->parent->pid;
+    k->ppid = p->parent->pid;
   else 
-    k.ppid = 0;
+    k->ppid = 0; 
 
+  //subtract 1 to exclude the current process info 
+  int count = p->syscalls_made;
+  if (count > 0)
+    count--; 
+  k->syscall_count = count; 
 
-
+  //page usage
+  k->page_usage = (p->sz + PGSIZE - 1) / PGSIZE;
+  return 0; 
 }
 
 

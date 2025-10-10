@@ -139,6 +139,7 @@ syscall(void)
 {
   int num;
   struct proc *p = myproc();
+  p->syscalls_made++; //PART2: count every syscall in this process 
 
   num = p->trapframe->a7;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
