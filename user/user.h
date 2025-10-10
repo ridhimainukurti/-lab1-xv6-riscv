@@ -23,6 +23,8 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int info(int); //PART1: sysinfo
+struct pinfo;  
+int procinfo(struct pinfo *);
 
 // ulib.c
 int stat(const char*, struct stat*);
