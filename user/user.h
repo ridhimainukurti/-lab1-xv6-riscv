@@ -24,7 +24,8 @@ int sleep(int);
 int uptime(void);
 int info(int); //PART1: sysinfo
 struct pinfo;
-int procinfo(struct pinfo *);
+int sysinfo(int param);
+int procinfo(struct pinfo *in);
 
 // ulib.c
 int stat(const char*, struct stat*);

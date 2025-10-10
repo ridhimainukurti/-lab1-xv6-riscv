@@ -91,7 +91,7 @@ sys_uptime(void)
   return xticks;
 }
 uint64
-sys_info(int)
+sys_sysinfo(int)
 {
   int param;
   argint(0, &param);
