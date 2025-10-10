@@ -95,8 +95,7 @@ sys_sysinfo(int)
 {
   int param;
   argint(0, &param);
-  sysinfo(param);
-  return 0;
+  return sysinfo(param);
 }
 
 uint64
@@ -109,12 +108,12 @@ sys_procinfo(void)
     return -1; 
 
   struct pinfo k; 
-  procinfo(&k);
+  //procinfo(&k);
   //fail to copy user space 
   if (copyout(myproc()->pagetable, uaddr, (char *)&k, sizeof(k)) < 0)
     return -1; 
-
-  return 0; 
+  return procinfo((struct pinfo *)uaddr); 
+  //return 0;
 }
 
 
