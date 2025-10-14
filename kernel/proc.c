@@ -709,27 +709,23 @@ sysinfo(int param){
 }
 
 int 
-procinfo(struct pinfo *k){
-  struct proc *p = myproc(); //gets the current process 
-  struct pinfo kinfo;
+procinfo(struct pinfo *in)
+{
+  struct proc *p = myproc(); 
+  struct pinfo k; 
 
-  //gets the parent id 
-  if (p->parent != 0)
-    kinfo.ppid = p->parent->pid;
-  else 
-    kinfo.ppid = 0; 
-
-  //subtract 1 to exclude the current process info 
-  int count = p->syscalls_made;
-  if (count > 0)
-    count--; 
-  kinfo.syscall_count = count; 
-
-  //page usage
-  kinfo.page_usage = (p->sz + PGSIZE - 1) / PGSIZE;
-  if (copyout(p->pagetable, (uint64)k, (char *)&kinfo, sizeof(kinfo)) < 0)
+  if (in == 0)
     return -1;
-  return 0; 
+  int count = p->syscalls_made;
+  k.ppid = p->parent ? p->parent->pid : 0;
+  k.syscall_count = count;
+
+  k.page_usage = (p->sz + PGSIZE - 1) / PGSIZE;
+
+  if (copyout(p->pagetable, (uint64)in, (char *)&k, sizeof(k)) < 0)
+    return -1;
+
+  return 0;
 }
 
 
