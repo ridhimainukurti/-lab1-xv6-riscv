@@ -700,7 +700,7 @@ sysinfo(int param){
     return count;
   }
   else if (param == 1){
-      return counter;
+      return counter - 1;
   }
   else if (param == 2){
     return freepagesCount();

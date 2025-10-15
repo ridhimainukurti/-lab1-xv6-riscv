@@ -108,12 +108,10 @@ sys_procinfo(void)
     return -1; 
 
   struct pinfo k; 
-  //procinfo(&k);
   //fail to copy user space 
   if (copyout(myproc()->pagetable, uaddr, (char *)&k, sizeof(k)) < 0)
     return -1; 
   return procinfo((struct pinfo *)uaddr); 
-  //return 0;
 }
 
 
