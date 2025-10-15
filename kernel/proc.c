@@ -700,7 +700,7 @@ sysinfo(int param){
     return count;
   }
   else if (param == 1){
-      return counter - 1;
+      return counter-1;
   }
   else if (param == 2){
     return freepagesCount();
@@ -718,7 +718,7 @@ procinfo(struct pinfo *in)
     return -1;
   int count = p->syscalls_made;
   k.ppid = p->parent ? p->parent->pid : 0;
-  k.syscall_count = count;
+  k.syscall_count = count-1;
 
   k.page_usage = (p->sz + PGSIZE - 1) / PGSIZE;
 
