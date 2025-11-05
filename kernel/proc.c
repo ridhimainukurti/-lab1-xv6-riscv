@@ -452,6 +452,15 @@ wait(uint64 addr)
 //  - swtch to start running that process.
 //  - eventually that process transfers control
 //    via swtch back to the scheduler.
+#if defined(LOTTERY)
+static unsigned short lfsr = 0xACE1u;
+static unsigned short rand16(void) {
+  unsigned short bit =
+    ((lfsr >> 0) ^ (lfsr >> 2) ^ (lfsr >> 3) ^ (lfsr >> 5)) & 1;
+  lfsr = (lfsr >> 1) | (bit << 15);
+  return lfsr;
+}
+#endif
 void
 scheduler(void)
 {
@@ -462,7 +471,36 @@ scheduler(void)
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
+       // 1) sum tickets
+#if defined(LOTTERY)
+  int total = 0;
+  for (p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if (p->state == RUNNABLE) total += p->tickets;  // tickets >= 1 by invariant
+    release(&p->lock);
+  }
+  if (total == 0) continue;
 
+  int win = (rand16() % total) + 1;
+
+  for (p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if (p->state == RUNNABLE) {
+      win -= p->tickets;
+      if (win <= 0) {
+        p->state = RUNNING;
+        c->proc = p;
+        p->sched_ticks++;        // count this dispatch
+        swtch(&c->context, &p->context);
+        c->proc = 0;
+        release(&p->lock);
+        break;
+      }
+    }
+      release(&p->lock);
+    }
+
+#else
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
@@ -480,6 +518,7 @@ scheduler(void)
       }
       release(&p->lock);
     }
+#endif
   }
 }
 
@@ -742,7 +781,7 @@ sched_tickets(int t)
   struct proc *p = myproc();
   if (t <= 0 || t > 10000){
     return 0;
-  } 
+  }
   acquire(&p->lock);
   p->tickets = t;
   release(&p->lock);
