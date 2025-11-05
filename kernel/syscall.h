@@ -23,3 +23,5 @@
 #define SYS_info   22
 #define SYS_procinfo  23
 #define SYS_sysinfo   24
+#define SYS_sched_statistics 25
+#define SYS_sched_tickets   26

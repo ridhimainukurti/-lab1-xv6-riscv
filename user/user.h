@@ -26,6 +26,8 @@ int info(int); //PART1: sysinfo
 struct pinfo;
 int sysinfo(int param);
 int procinfo(struct pinfo *in);
+int sched_statistics(void);
+int sched_tickets(int);
 
 // ulib.c
 int stat(const char*, struct stat*);

@@ -6,6 +6,8 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "pinfo.h"
+extern struct proc proc[NPROC];
+
 
 uint64
 sys_exit(void)
@@ -115,3 +117,36 @@ sys_procinfo(void)
 }
 
 
+
+uint64
+sys_sched_statistics(void)
+{
+  struct proc *p;
+
+  for (p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if (p->state != UNUSED) {
+      printf("%d(%s): tickets: %d, ticks: %d\n",
+             p->pid, p->name, p->tickets, p->sched_ticks);
+    }
+    release(&p->lock);
+  }
+  return 0;
+}
+
+uint64
+sys_sched_tickets(void)
+{
+  int t;
+  argint(0, &t);
+  struct proc *p = myproc();
+
+  if (t <= 0)
+    return 0;
+  if (t > 10000)
+    return 0;
+  acquire(&p->lock);
+  p->tickets = t;   // assumes struct proc has 'int tickets;'
+  release(&p->lock);
+  return 0;
+}

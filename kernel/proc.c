@@ -127,6 +127,13 @@ found:
   p->pid = allocpid();
   p->state = USED;
   p->syscalls_made = 0; //PART2: initializing it here 
+  //added code here
+  p->tickets = 10000;
+  p->sched_ticks = 0;
+  p->stride = 10000 / p->tickets; // K / tickets
+  if(p->stride == 0) p->stride = 1;
+    p->pass = 0;
+
 
 
   // Allocate a trapframe page.
@@ -464,6 +471,7 @@ scheduler(void)
         // before jumping back to us.
         p->state = RUNNING;
         c->proc = p;
+        p->sched_ticks++;
         swtch(&c->context, &p->context);
 
         // Process is done running for now.
@@ -727,5 +735,32 @@ procinfo(struct pinfo *in)
 
   return 0;
 }
+
+int
+sched_tickets(int t)
+{
+  struct proc *p = myproc();
+  if (t <= 0 || t > 10000){
+    return 0;
+  } 
+  acquire(&p->lock);
+  p->tickets = t;
+  release(&p->lock);
+  return 0;
+}
+
+int
+sched_statistics(void)
+{
+  struct proc *pp;
+  for (pp = proc; pp < &proc[NPROC]; pp++) {
+    if (pp->state != UNUSED) {
+      printf("%d(%s): tickets: %d, ticks: %d\n",
+             pp->pid, pp->name, pp->tickets, pp->sched_ticks);
+    }
+  }
+  return 0;
+}
+
 
 
