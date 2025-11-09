@@ -6,6 +6,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "pinfo.h"
+#define K 1000000
 extern struct proc proc[NPROC];
 
 
@@ -139,14 +140,19 @@ sys_sched_tickets(void)
 {
   int t;
   argint(0, &t);
-  struct proc *p = myproc();
 
-  if (t <= 0)
-    return 0;
+  if (t < 1)
+    t = 1; 
+
   if (t > 10000)
-    return 0;
+    t = 10000; 
+  
+  struct proc *p = myproc();
   acquire(&p->lock);
-  p->tickets = t;   // assumes struct proc has 'int tickets;'
+
+  p->tickets = t;
+  p->stride = K / p->tickets;
+  if (p->stride < 1)  p->stride = 1;   // assumes struct proc has 'int tickets;'
   release(&p->lock);
   return 0;
 }

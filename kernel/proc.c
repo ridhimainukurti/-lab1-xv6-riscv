@@ -7,6 +7,7 @@
 #include "defs.h"
 #include "kalloc.h"
 #include "pinfo.h"
+#define K 1000000
 
 struct cpu cpus[NCPU];
 
@@ -130,7 +131,7 @@ found:
   //added code here
   p->tickets = 10000;
   p->sched_ticks = 0;
-  p->stride = 10000 / p->tickets; // K / tickets
+  p->stride = K / p->tickets; // K / tickets
   if(p->stride == 0) p->stride = 1;
     p->pass = 0;
 
@@ -498,6 +499,35 @@ scheduler(void)
       }
     }
       release(&p->lock);
+    }
+
+#elif defined(STRIDE)
+
+    struct proc *minp = 0; 
+    // Find the RUNNABLE process with the smallest pass value
+    for (p = proc; p < &proc[NPROC]; p++) {
+      acquire(&p->lock);
+      if (p->state == RUNNABLE) {
+        if (minp == 0 || p->pass < minp->pass)
+          minp = p;
+      }
+      release(&p->lock);
+    }
+
+    if (minp) {
+      acquire(&minp->lock);
+      if (minp->state == RUNNABLE) {
+        minp->state = RUNNING;
+        c->proc = minp;
+        minp->sched_ticks++;
+
+        swtch(&c->context, &minp->context);
+        c->proc = 0;
+
+        // After running one time slice, advance its virtual time
+        minp->pass += minp->stride;
+      }
+      release(&minp->lock);
     }
 
 #else
