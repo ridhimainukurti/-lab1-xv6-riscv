@@ -123,13 +123,15 @@ uint64
 sys_sched_statistics(void)
 {
   struct proc *p;
-
+//loops through all processes in the system
   for (p = proc; p < &proc[NPROC]; p++) {
     acquire(&p->lock);
+    //if process not in use then it prints the information about the process
     if (p->state != UNUSED) {
       printf("%d(%s): tickets: %d, ticks: %d\n",
              p->pid, p->name, p->tickets, p->sched_ticks);
     }
+    //release the lock
     release(&p->lock);
   }
   return 0;
@@ -138,21 +140,23 @@ sys_sched_statistics(void)
 uint64
 sys_sched_tickets(void)
 {
-  int t;
-  argint(0, &t);
-
-  if (t < 1)
-    t = 1; 
-
-  if (t > 10000)
-    t = 10000; 
+  //lets take in the integer ticketing
+  int ticketing;
+  argint(0, &ticketing);
+  
+  //if it is too small then lets set it to 1
+  if (ticketing < 1)
+    ticketing = 1; 
+  //if its too large then set it to 10000
+  if (ticketing > 10000)
+    ticketing = 10000; 
   
   struct proc *p = myproc();
   acquire(&p->lock);
-
-  p->tickets = t;
+  //assigning the tickets and the stride value here for scheduling
+  p->tickets = ticketing;
   p->stride = K / p->tickets;
-  if (p->stride < 1)  p->stride = 1;   // assumes struct proc has 'int tickets;'
+  if (p->stride < 1)  p->stride = 1;
   release(&p->lock);
   return 0;
 }
