@@ -477,7 +477,7 @@ scheduler(void)
   int total = 0;
   for (p = proc; p < &proc[NPROC]; p++) {
     acquire(&p->lock);
-    if (p->state == RUNNABLE) total += p->tickets;  // tickets >= 1 by invariant
+    if (p->state == RUNNABLE) total += p->tickets;
     release(&p->lock);
   }
   if (total == 0) continue;
@@ -491,7 +491,7 @@ scheduler(void)
       if (win <= 0) {
         p->state = RUNNING;
         c->proc = p;
-        p->sched_ticks++;        // count this dispatch
+        p->sched_ticks++;        
         swtch(&c->context, &p->context);
         c->proc = 0;
         release(&p->lock);
