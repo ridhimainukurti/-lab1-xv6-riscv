@@ -20,6 +20,7 @@ struct spinlock pid_lock;
 
 extern void forkret(void);
 static void freeproc(struct proc *p);
+static struct proc* allocproc_thread(void);
 
 extern char trampoline[]; // trampoline.S
 
@@ -167,11 +168,26 @@ found:
 static void
 freeproc(struct proc *p)
 {
-  if(p->trapframe)
+  // free the physical trapframe memory
+  if(p->trapframe){
     kfree((void*)p->trapframe);
-  p->trapframe = 0;
-  if(p->pagetable)
+    p->trapframe = 0;
+  }
+
+  // If this is a child thread (thread_id > 0), unmap its
+  // trapframe VA from the shared pagetable.
+  if(p->thread_id > 0 && p->pagetable){
+    uint64 tfva = TRAPFRAME - PGSIZE * p->thread_id;
+    // don't free the physical page here (we already kfree'd trapframe above),
+    // just remove the mapping.
+    uvmunmap(p->pagetable, tfva, 1, 0);
+  }
+
+  // If this is the main process (thread_id == 0), free the whole pagetable.
+  if(p->thread_id == 0 && p->pagetable){
     proc_freepagetable(p->pagetable, p->sz);
+  }
+//ended added stuff
   p->pagetable = 0;
   p->sz = 0;
   p->pid = 0;
@@ -831,5 +847,143 @@ sched_statistics(void)
   return 0;
 }
 
+int
+clone(uint64 stack)
+{
+  struct proc *p = myproc();
+  struct proc *np;
+  struct proc *pp;
+  int tid;
 
+  // basic sanity check for stack pointer
+  if(stack == 0)
+    return -1;
 
+  // allocate a proc slot for the new thread
+  if((np = allocproc_thread()) == 0)
+    return -1;                // np->lock is not held if alloc failed
+
+  // share address space: same pagetable and size
+  np->pagetable = p->pagetable;
+  np->sz        = p->sz;
+
+  // copy trapframe (registers etc.)
+  *(np->trapframe) = *(p->trapframe);
+
+  // child returns 0 from clone()
+  np->trapframe->a0 = 0;
+
+  // set user stack pointer for the new thread
+  np->trapframe->sp = stack;
+
+  // pick a free thread_id in 1..MAXTHREAD for THIS parent
+  tid = 1;
+  for(pp = proc; pp < &proc[NPROC]; pp++){
+    if(pp->state != UNUSED &&
+       pp->parent == p &&
+       pp->pagetable == p->pagetable &&
+       pp->thread_id >= tid)
+      tid = pp->thread_id + 1;
+  }
+
+  if(tid > MAXTHREAD){
+    // no free thread IDs left
+    kfree(np->trapframe);
+    np->trapframe = 0;
+    np->state = UNUSED;
+    release(&np->lock);
+    return -1;
+  }
+
+  np->thread_id = tid;
+
+  // inherit scheduling-related fields
+  np->tickets      = p->tickets;
+  np->stride       = p->stride;
+  np->pass         = p->pass;
+  np->sched_ticks  = 0;
+  np->syscalls_made = 0;
+
+  // share open files (same as fork)
+  for(int i = 0; i < NOFILE; i++){
+    if(p->ofile[i])
+      np->ofile[i] = filedup(p->ofile[i]);
+  }
+  if(p->cwd)
+    np->cwd = idup(p->cwd);
+
+  safestrcpy(np->name, p->name, sizeof(np->name));
+
+  // map this thread's trapframe into the shared user pagetable
+  uint64 tfva = TRAPFRAME - PGSIZE * np->thread_id;
+  if(mappages(np->pagetable, tfva, PGSIZE,
+              (uint64)np->trapframe, PTE_R | PTE_W) < 0){
+    // mapping failed: clean up this thread
+    kfree(np->trapframe);
+    np->trapframe = 0;
+    np->state = UNUSED;
+    release(&np->lock);
+    return -1;
+  }
+
+  // set parent (same pattern as fork())
+  acquire(&wait_lock);
+  np->parent = p;
+  release(&wait_lock);
+
+  // make runnable
+  np->state = RUNNABLE;
+  release(&np->lock);
+
+  // parent gets child's pid; child sees 0 from clone()
+  return np->pid;
+}
+
+static struct proc*
+allocproc_thread(void)
+{
+  struct proc *p;
+
+  // find an UNUSED proc slot
+  for(p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if(p->state == UNUSED) {
+      goto found;
+    }
+    release(&p->lock);
+  }
+  return 0;
+
+found:
+  p->pid = allocpid();
+  p->state = USED;
+
+  // this is a thread; clone() will assign a real thread_id
+  p->thread_id = -1;
+
+  // allocate a unique trapframe for this thread
+  p->trapframe = (struct trapframe*)kalloc();
+  if(p->trapframe == 0){
+    p->state = UNUSED;
+    release(&p->lock);
+    return 0;
+  }
+
+  // no separate pagetable for threads; clone() fills pagetable/sz
+  p->pagetable = 0;
+  p->sz        = 0;
+
+  // initialize scheduling / bookkeeping; clone() overwrites the important ones
+  p->tickets       = 0;
+  p->stride        = 0;
+  p->pass          = 0;
+  p->sched_ticks   = 0;
+  p->syscalls_made = 0;
+
+  // set up kernel context (same as in allocproc())
+  memset(&p->context, 0, sizeof(p->context));
+  p->context.ra = (uint64)forkret;
+  p->context.sp = p->kstack + PGSIZE;
+
+  return p;  // p->lock is still held here
+}
