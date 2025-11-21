@@ -90,7 +90,9 @@ $U/initcode: $U/initcode.S
 tags: $(OBJS) _init
 	etags *.S *.c
 
-ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
+#ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
+#changed to what the lab said
+ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o $U/thread.o
 
 _%: %.o $(ULIB)
 	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
@@ -138,6 +140,7 @@ UPROGS=\
 	$U/_lab1_test\
 	$U/_lab2_test\
 	$U/_clone_test\
+	$U/_lab3_test\
 
 
 fs.img: mkfs/mkfs README $(UPROGS)
