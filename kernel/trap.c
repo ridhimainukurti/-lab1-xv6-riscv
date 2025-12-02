@@ -102,18 +102,18 @@ usertrapret(void)
 
   // set up trapframe values that uservec will need when
   // the process next traps into the kernel.
-  p->trapframe->kernel_satp = r_satp();         // kernel page table
-  p->trapframe->kernel_sp = p->kstack + PGSIZE; // process's kernel stack
-  p->trapframe->kernel_trap = (uint64)usertrap;
-  p->trapframe->kernel_hartid = r_tp();         // hartid for cpuid()
+  p->trapframe->kernel_satp   = r_satp();          // kernel page table
+  p->trapframe->kernel_sp     = p->kstack + PGSIZE; // process's kernel stack
+  p->trapframe->kernel_trap   = (uint64)usertrap;
+  p->trapframe->kernel_hartid = r_tp();            // hartid for cpuid()
 
   // set up the registers that trampoline.S's sret will use
   // to get to user space.
-  
+
   // set S Previous Privilege mode to User.
   unsigned long x = r_sstatus();
-  x &= ~SSTATUS_SPP; // clear SPP to 0 for user mode
-  x |= SSTATUS_SPIE; // enable interrupts in user mode
+  x &= ~SSTATUS_SPP;  // clear SPP to 0 for user mode
+  x |= SSTATUS_SPIE;  // enable interrupts in user mode
   w_sstatus(x);
 
   // set S Exception Program Counter to the saved user pc.
@@ -122,11 +122,18 @@ usertrapret(void)
   // tell trampoline.S the user page table to switch to.
   uint64 satp = MAKE_SATP(p->pagetable);
 
+  // compute this thread's trapframe VA in user space
+  uint64 tfva;
+  if(p->thread_id == 0)
+    tfva = TRAPFRAME;
+  else
+    tfva = TRAPFRAME - PGSIZE * p->thread_id;
+
   // jump to userret in trampoline.S at the top of memory, which 
   // switches to the user page table, restores user registers,
   // and switches to user mode with sret.
   uint64 trampoline_userret = TRAMPOLINE + (userret - trampoline);
-  ((void (*)(uint64))trampoline_userret)(satp);
+  ((void (*)(uint64,uint64))trampoline_userret)(tfva, satp);
 }
 
 // interrupts and exceptions from kernel code go here via kernelvec,

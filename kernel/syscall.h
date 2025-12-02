@@ -25,3 +25,4 @@
 #define SYS_sysinfo   24
 #define SYS_sched_statistics 25
 #define SYS_sched_tickets   26
+#define SYS_clone  27

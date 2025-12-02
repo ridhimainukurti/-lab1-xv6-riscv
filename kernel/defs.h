@@ -111,6 +111,7 @@ int             sysinfo(int param);
 int             procinfo(struct pinfo *);
 int             sched_statistics(void);
 int             sched_tickets(int);
+int             clone(uint64 stack);     //clone system call
 
 // swtch.S
 void            swtch(struct context*, struct context*);
